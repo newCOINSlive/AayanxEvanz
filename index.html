@@ -4,8 +4,27 @@
   <meta charset="UTF-8" />
   <title>Happy Birthday Boy</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet" />
+  
   <style>
+    /* Disable selection everywhere */
+    html, body, * {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Disable dragging images */
+    img, video {
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -26,10 +45,56 @@
       background-color: #2b0006;
     }
 
+    /* Intro & Outro videos */
+    #intro-video,
+    #outro-video {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      background: #000;
+      z-index: 3000;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    #intro-video.hidden,
+    #outro-video.hidden {
+      opacity: 0;
+      transition: opacity 0.9s ease;
+    }
+
+    #outro-video {
+      opacity: 0;
+    }
+
+    #outro-video.show {
+      opacity: 1;
+      transition: opacity 0.9s ease;
+    }
+
+    /* Main film content */
+    #film-root {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+      z-index: 1000;
+    }
+
+    #film-root.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     .screen {
       position: fixed;
       inset: 0;
-      background: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -100,18 +165,13 @@
       top: -20px;
       border-radius: 2px;
       opacity: 0.9;
-      z-index: 999;
+      z-index: 1500;
       animation: confettiFall 3s linear forwards;
     }
 
     @keyframes confettiFall {
-      0% {
-        transform: translateY(-20px) rotate(0deg);
-      }
-      100% {
-        transform: translateY(110vh) rotate(520deg);
-        opacity: 0;
-      }
+      0% { transform: translateY(-20px) rotate(0deg); }
+      100% { transform: translateY(110vh) rotate(520deg); opacity: 0; }
     }
 
     /* Hearts */
@@ -120,292 +180,217 @@
       top: -10vh;
       font-size: 22px;
       color: #ff4b6a;
-      z-index: 998;
+      z-index: 1490;
       opacity: 0.95;
       animation: heartFall 4s linear forwards;
     }
 
     @keyframes heartFall {
-      0% {
-        transform: translateY(-10vh) translateX(0) scale(1);
-      }
-      100% {
-        transform: translateY(110vh) translateX(20px) scale(1.2);
-        opacity: 0;
-      }
-    }
-
-    /* Curtains */
-    #curtain-container {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: space-between;
-      pointer-events: none;
-      opacity: 0;
-      z-index: 2000;
-      transition: opacity 0.4s linear;
-    }
-
-    #curtain-container.active {
-      opacity: 1;
-    }
-
-    .curtain {
-      width: 50%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        #3d0008 0%,
-        #790014 30%,
-        #b30024 60%,
-        #3d0008 100%
-      );
-      box-shadow: 0 0 40px rgba(0,0,0,0.9);
-      transform: translateX(0);
-      transition: transform 2.3s ease-in-out;
-    }
-
-    .curtain-left {
-      transform: translateX(-100%);
-    }
-
-    .curtain-right {
-      transform: translateX(100%);
-    }
-
-    #curtain-container.close .curtain-left {
-      transform: translateX(0);
-    }
-
-    #curtain-container.close .curtain-right {
-      transform: translateX(0);
+      0% { transform: translateY(-10vh) scale(1); }
+      100% { transform: translateY(110vh) scale(1.2); opacity: 0; }
     }
   </style>
 </head>
 <body>
-  <div class="screen">
-    <div class="film-overlay"></div>
-    <div class="center-content" id="center">
-      <!-- Content injected by JS -->
+
+  <!-- Intro video -->
+  <video id="intro-video" autoplay muted playsinline>
+    <!-- CHANGE THIS TO YOUR INTRO VIDEO -->
+    <source src="animation.mp4" type="video/mp4">
+  </video>
+
+  <!-- Outro curtain closing video -->
+  <video id="outro-video" muted playsinline>
+    <!-- CHANGE THIS TO YOUR CURTAIN VIDEO -->
+    <source src="curtain.mp4" type="video/mp4">
+  </video>
+
+  <!-- Main film content -->
+  <div id="film-root">
+    <div class="screen">
+      <div class="film-overlay"></div>
+      <div class="center-content" id="center"></div>
     </div>
   </div>
 
-  <!-- Curtain overlay -->
-  <div id="curtain-container">
-    <div class="curtain curtain-left"></div>
-    <div class="curtain curtain-right"></div>
-  </div>
+<script>
+  // Disable right click
+  document.addEventListener("contextmenu", e => e.preventDefault());
 
-  <script>
-    // ============ CONFIG ============
+  // Images of him
+  const imageSequence = [
+    "benith1.jpg",
+    "benith2.jpg",
+    "benith3.jpg"
+  ];
 
-    // Put your real image paths here (Benith's photos)
-    const imageSequence = [
-      "benith1.jpg",
-      "benith2.jpg",
-      "benith3.jpg"
-      // Add/remove as needed
-    ];
+  const DISPLAY_TIME = 2500;
+  const TRANSITION_TIME = 2500;
 
-    const DISPLAY_TIME = 2500;    // how long each scene stays fully visible (ms)
-    const TRANSITION_TIME = 2500; // fade-in / fade-out duration (ms)
+  const center = document.getElementById("center");
+  const filmRoot = document.getElementById("film-root");
+  const introVideo = document.getElementById("intro-video");
+  const outroVideo = document.getElementById("outro-video");
 
-    const center = document.getElementById("center");
-    const curtainContainer = document.getElementById("curtain-container");
+  const steps = [
+    { type: "textIntro", text: "Happy Birthday Boy" },
+    ...imageSequence.map(src => ({ type: "image", src })),
+    { type: "textBless", text: "Stay Blessed boy" },
+    { type: "textLove", text: "I love you" },
+    { type: "textEnd", text: "The End." }
+  ];
 
-    // Steps:
-    // 0: "Happy Birthday Boy"
-    // 1..N: images
-    // N+1: "Stay Blessed boy"
-    // N+2: "I love you" (red mode + hearts)
-    // N+3: "The End." + curtains
-    const steps = [];
+  let currentStep = 0;
 
-    steps.push({ type: "textIntro", text: "Happy Birthday Boy" });
-
-    imageSequence.forEach(src => {
-      steps.push({ type: "image", src });
-    });
-
-    steps.push({ type: "textBless", text: "Stay Blessed boy" });
-    steps.push({ type: "textLove", text: "I love you" });
-    steps.push({ type: "textEnd", text: "The End." });
-
-    let currentStep = 0;
-
-    // ============ CONFETTI ============
-
-    function spawnConfetti(amount = 120) {
-      const colors = ["#ffb100", "#42e2b8", "#ff6b6b", "#9b5cff", "#ffffff"];
-      for (let i = 0; i < amount; i++) {
-        const c = document.createElement("div");
-        c.classList.add("confetti");
-        c.style.left = Math.random() * 100 + "vw";
-        c.style.background = colors[Math.floor(Math.random() * colors.length)];
-        c.style.animationDuration = (2 + Math.random() * 2) + "s";
-        c.style.transform =
-          "translateY(-20px) rotate(" + (Math.random() * 360) + "deg)";
-        document.body.appendChild(c);
-        setTimeout(() => c.remove(), 4500);
-      }
+  // CONFETTI
+  function spawnConfetti(amount = 120) {
+    const colors = ["#ffb100","#42e2b8","#ff6b6b","#9b5cff","#ffffff"];
+    for (let i=0; i<amount; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random()*100 + "vw";
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.animationDuration = (2 + Math.random()*2)+"s";
+      document.body.appendChild(c);
+      setTimeout(()=>c.remove(),4500);
     }
+  }
 
-    // ============ HEARTS ============
-
-    function spawnHearts(amount = 80) {
-      for (let i = 0; i < amount; i++) {
-        const h = document.createElement("div");
-        h.classList.add("heart");
-        h.textContent = "❤";
-        h.style.left = Math.random() * 100 + "vw";
-        h.style.fontSize = (18 + Math.random() * 12) + "px";
-        h.style.animationDuration = (2.5 + Math.random() * 2) + "s";
-        document.body.appendChild(h);
-        setTimeout(() => h.remove(), 5000);
-      }
+  // HEARTS
+  function spawnHearts(amount = 80) {
+    for (let i=0; i<amount; i++) {
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = "❤";
+      h.style.left = Math.random()*100 + "vw";
+      h.style.fontSize = (18+Math.random()*12)+"px";
+      h.style.animationDuration = (2.5+Math.random()*2)+"s";
+      document.body.appendChild(h);
+      setTimeout(()=>h.remove(),5000);
     }
+  }
 
-    // ============ CURTAINS ============
+  // OUTRO VIDEO
+  function startOutro() {
+    filmRoot.classList.remove("active");
 
-    function closeCurtains() {
-      curtainContainer.classList.add("active");
-      // tiny delay before starting slide, so opacity is visible
+    setTimeout(() => {
+      outroVideo.classList.add("show");
+      const p = outroVideo.play();
+      if (p && p.catch) p.catch(()=>{});
+    }, 700);
+  }
+
+  outroVideo.addEventListener("ended", () => {
+    outroVideo.classList.add("hidden");
+    center.innerHTML = "";
+    document.body.classList.remove("red-mode");
+  });
+
+  // FILM STEPS
+  function runStep(i) {
+    if (i >= steps.length) return;
+
+    const step = steps[i];
+    center.innerHTML = "";
+
+    if (step.type === "textIntro") {
+      const msg = document.createElement("div");
+      msg.className = "message fade-in";
+      msg.textContent = step.text;
+      msg.addEventListener("click", ()=>spawnConfetti());
+      center.appendChild(msg);
+
       setTimeout(() => {
-        curtainContainer.classList.add("close");
-      }, 50);
+        msg.classList.replace("fade-in","fade-out");
+        setTimeout(()=>{ currentStep++; runStep(currentStep); }, TRANSITION_TIME);
+      }, DISPLAY_TIME);
+
+    } else if (step.type === "image") {
+      const img = document.createElement("img");
+      img.className = "scene-image fade-in";
+      img.src = step.src;
+      center.appendChild(img);
+
+      setTimeout(() => {
+        img.classList.replace("fade-in","fade-out");
+        setTimeout(()=>{ currentStep++; runStep(currentStep); }, TRANSITION_TIME);
+      }, DISPLAY_TIME);
+
+    } else if (step.type === "textBless") {
+      const msg = document.createElement("div");
+      msg.className = "message final-message fade-in";
+      msg.textContent = step.text;
+      center.appendChild(msg);
+
+      setTimeout(() => {
+        msg.classList.replace("fade-in","fade-out");
+        setTimeout(()=>{ currentStep++; runStep(currentStep); }, TRANSITION_TIME);
+      }, DISPLAY_TIME);
+
+    } else if (step.type === "textLove") {
+      document.body.classList.add("red-mode");
+      spawnHearts(100);
+
+      const msg = document.createElement("div");
+      msg.className = "message final-message fade-in";
+      msg.textContent = step.text;
+      center.appendChild(msg);
+
+      msg.addEventListener("click", () => {
+        spawnHearts(150);
+        spawnConfetti(150);
+      });
+
+      setTimeout(() => {
+        msg.classList.replace("fade-in","fade-out");
+        setTimeout(()=>{ currentStep++; runStep(currentStep); }, TRANSITION_TIME);
+      }, DISPLAY_TIME + 800);
+
+    } else if (step.type === "textEnd") {
+
+      document.body.classList.remove("red-mode");
+
+      const msg = document.createElement("div");
+      msg.className = "message final-message fade-in";
+      msg.textContent = step.text;
+      center.appendChild(msg);
+
+      setTimeout(() => {
+        msg.classList.replace("fade-in","fade-out");
+
+        setTimeout(() => {
+          center.innerHTML = "";
+          startOutro();
+          currentStep++;
+        }, TRANSITION_TIME);
+      }, DISPLAY_TIME + 500);
     }
+  }
 
-    // ============ SEQUENCE LOGIC ============
+  // INTRO VIDEO END → START FILM
+  function beginFilm() {
+    introVideo.classList.add("hidden");
+    setTimeout(() => {
+      filmRoot.classList.add("active");
+    }, 400);
 
-    function runStep(index) {
-      if (index >= steps.length) {
-        // End: black screen behind closed curtains
-        center.innerHTML = "";
-        document.body.classList.remove("red-mode");
-        return;
-      }
+    setTimeout(() => introVideo.remove(), 1500);
 
-      const step = steps[index];
-      center.innerHTML = ""; // clear previous content
+    runStep(currentStep);
+  }
 
-      if (step.type === "textIntro") {
-        document.body.classList.remove("red-mode");
+  introVideo.addEventListener("ended", beginFilm);
 
-        const msg = document.createElement("div");
-        msg.className = "message fade-in";
-        msg.textContent = step.text;
-
-        // Click for confetti
-        msg.addEventListener("click", () => {
-          spawnConfetti();
-        });
-
-        center.appendChild(msg);
-
-        // After display time, fade out and go next
-        setTimeout(() => {
-          msg.classList.remove("fade-in");
-          msg.classList.add("fade-out");
-
-          setTimeout(() => {
-            currentStep++;
-            runStep(currentStep);
-          }, TRANSITION_TIME);
-        }, DISPLAY_TIME);
-
-      } else if (step.type === "image") {
-        document.body.classList.remove("red-mode");
-
-        const img = document.createElement("img");
-        img.src = step.src;
-        img.alt = "Birthday image";
-        img.className = "scene-image fade-in";
-        center.appendChild(img);
-
-        setTimeout(() => {
-          img.classList.remove("fade-in");
-          img.classList.add("fade-out");
-
-          setTimeout(() => {
-            currentStep++;
-            runStep(currentStep);
-          }, TRANSITION_TIME);
-        }, DISPLAY_TIME);
-
-      } else if (step.type === "textBless") {
-        document.body.classList.remove("red-mode");
-
-        const msg = document.createElement("div");
-        msg.className = "message final-message fade-in";
-        msg.textContent = step.text;
-        center.appendChild(msg);
-
-        setTimeout(() => {
-          msg.classList.remove("fade-in");
-          msg.classList.add("fade-out");
-
-          setTimeout(() => {
-            currentStep++;
-            runStep(currentStep);
-          }, TRANSITION_TIME);
-        }, DISPLAY_TIME);
-
-      } else if (step.type === "textLove") {
-        // Switch to red mode + hearts
-        document.body.classList.add("red-mode");
-        spawnHearts(100);
-
-        const msg = document.createElement("div");
-        msg.className = "message final-message fade-in";
-        msg.textContent = step.text;
-        center.appendChild(msg);
-
-        // Extra hearts + confetti on click
-        msg.addEventListener("click", () => {
-          spawnHearts(150);
-          spawnConfetti(150);
-        });
-
-        setTimeout(() => {
-          msg.classList.remove("fade-in");
-          msg.classList.add("fade-out");
-
-          setTimeout(() => {
-            currentStep++;
-            runStep(currentStep);
-          }, TRANSITION_TIME);
-        }, DISPLAY_TIME + 800); // keep this one a bit longer
-
-      } else if (step.type === "textEnd") {
-        // Back to pure cinema black
-        document.body.classList.remove("red-mode");
-
-        const msg = document.createElement("div");
-        msg.className = "message final-message fade-in";
-        msg.textContent = step.text;
-        center.appendChild(msg);
-
-        // After The End shows, fade out and trigger curtains
-        setTimeout(() => {
-          msg.classList.remove("fade-in");
-          msg.classList.add("fade-out");
-
-          setTimeout(() => {
-            center.innerHTML = "";
-            closeCurtains();
-            currentStep++;
-            runStep(currentStep); // final cleanup
-          }, TRANSITION_TIME);
-        }, DISPLAY_TIME + 500);
-      }
+  window.addEventListener("load", () => {
+    const p = introVideo.play();
+    if (p && p.catch) {
+      p.catch(() => {
+        document.addEventListener("click", () => introVideo.play(), { once:true });
+      });
     }
+  });
+</script>
 
-    // Start after a tiny delay for dramatic effect
-    window.addEventListener("load", () => {
-      setTimeout(() => runStep(currentStep), 800);
-    });
-  </script>
 </body>
 </html>
-
